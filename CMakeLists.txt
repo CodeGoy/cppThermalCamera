@@ -5,6 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenCV REQUIRED)
 
+message(STATUS "Found OpenCV ${OpenCV_VERSION}")
+
+if(NOT "${OpenCV_VERSION}" VERSION_EQUAL "4.11.0")
+    message(FATAL_ERROR "Incorrect OpenCV version found. Required version 4.11.0")
+endif()
+
 add_executable(cppThermalCamera main.cpp)
 
 configure_file(

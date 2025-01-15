@@ -29,7 +29,6 @@ const std::vector<std::tuple<int, std::string>> colormaps = {
     {cv::ColormapTypes::COLORMAP_MAGMA, "Magma"},
     {cv::ColormapTypes::COLORMAP_INFERNO, "Inferno"},
     {cv::ColormapTypes::COLORMAP_TWILIGHT_SHIFTED, "TwilightShifted"},
-
     //{cv::ColormapTypes::COLORMAP_VIRIDIS, "Viridis"},
     //{cv::ColormapTypes::COLORMAP_CIVIDIS, "Cividis"},
     //{cv::ColormapTypes::COLORMAP_PINK, "Pink"},
@@ -134,9 +133,9 @@ int main(int argc, char* argv[]) {
     auto recordingStartTime = std::chrono::system_clock::now();
     int mapInt = 0;
     int scale = 2;
-    bool tempConv = true;
+    bool tempConv = false;
     bool recording = false;
-    bool crosshair = true;
+    bool crosshair = false;
     bool info = false;
     bool highLow = false;
     int colormapsLen = static_cast<int>(colormaps.size());
@@ -145,8 +144,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "Error: Could not open the Thermal camera." << std::endl;
         return -1;
     }
+    // Do not convert to RGB
     cap.set(cv::CAP_PROP_CONVERT_RGB, false);
-    cv::Mat frame(cv::Size(256, 384), CV_16UC2);
+    cv::Mat frame;
     // start video capture
     while (true) {
         // get frame
@@ -155,20 +155,26 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: Could not grab a frame." << std::endl;
             break;
         }
-        // get thermal mat
-        cv::Rect bottomHalf(0, frame.rows / 2 , frame.cols, frame.rows / 2);
-        cv::Mat thermalMat = frame(bottomHalf);
-        // get visible mat
-        cv::Rect topHalf(0, 0, 256, 192);
-        cv::Mat visibleMat = frame(topHalf);
-        // convert to rgb
-        cv::Mat matRGB;
-        cvtColor(visibleMat, matRGB, cv::COLOR_YUV2BGR_YUYV);
+        // reshape mat into 384x256 2 channels from a 1x196608 1 channel mat;
+        cv::Mat reshapedFrame = frame.reshape(2, 384);
+        // get bottom half "the Thermal zone"
+        cv::Rect bottomHalf(0, reshapedFrame.rows / 2 , reshapedFrame.cols, reshapedFrame.rows / 2);
+        cv::Mat thermalMat = reshapedFrame(bottomHalf);
+        // get top half of mat "the visible zone"
+        cv::Rect topHalf(0, 0, reshapedFrame.cols, reshapedFrame.rows/2);
+        cv::Mat visibleMat = reshapedFrame(topHalf);
+        // convert visibleMat to a single channel mat
+        cv::Mat singleChannelMat;
+        // Extract the first channel
+        extractChannel(visibleMat, singleChannelMat, 0);
+        // convert 1 channel gray mat to RGB
+        cv::Mat rgbFrame;
+        cvtColor(singleChannelMat, rgbFrame, cv::COLOR_GRAY2BGR);
         // get current colormap
         auto [colormapInt, colormapText] = colormaps[mapInt];
         // apply colormap
         cv::Mat colormapped;
-        applyColorMap(matRGB, colormapped, colormapInt);
+        applyColorMap(rgbFrame, colormapped, colormapInt);
         // scale mat
         cv::Mat scaledImage;
         resize(colormapped, scaledImage, cv::Size(256 * scale, 192 * scale), 0, 0, cv::INTER_CUBIC);
