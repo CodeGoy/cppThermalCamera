@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.30)
-project(cppThermalCamera VERSION 0.0.1)
+project(cppThermalCamera VERSION 0.0.2)
 
 set(CMAKE_CXX_STANDARD 20)
 
