@@ -5,7 +5,7 @@ int sensorHeight = 192;
 int sensorWidth = 256;
 int outputHeight = 480;
 int outputWidth = 640;
-double scalingRatio = (double)outputHeight / (double)sensorHeight;
+double scalingRatio = static_cast<double>(outputHeight) / static_cast<double>(sensorHeight);
 int thermalPadding = 20; // do not read thermal data N pixels from the edge, higher value lowers processing time
 int font = cv::FONT_HERSHEY_SIMPLEX;
 const cv::Scalar white(255, 255, 255);
@@ -18,20 +18,21 @@ int textBorderWidth = 3;
 const std::vector<std::tuple<int, std::string>> colormaps = {
     {cv::ColormapTypes::COLORMAP_BONE, "Bone"},
     {cv::ColormapTypes::COLORMAP_TURBO, "Turbo"},
-    {cv::ColormapTypes::COLORMAP_DEEPGREEN, "DeepGreen"},
-    {cv::ColormapTypes::COLORMAP_OCEAN, "Ocean"},
-    {cv::ColormapTypes::COLORMAP_HOT, "Hot"},
-    {cv::ColormapTypes::COLORMAP_MAGMA, "Magma"},
-    {cv::ColormapTypes::COLORMAP_INFERNO, "Inferno"},
-    {cv::ColormapTypes::COLORMAP_TWILIGHT_SHIFTED, "TwilightShifted"},
+    {cv::ColormapTypes::COLORMAP_JET, "Jet"},
+    {cv::ColormapTypes::COLORMAP_HSV, "HSV"},
+    {cv::ColormapTypes::COLORMAP_RAINBOW, "Rainbow"},
+
+    //{cv::ColormapTypes::COLORMAP_DEEPGREEN, "DeepGreen"},
+    //{cv::ColormapTypes::COLORMAP_OCEAN, "Ocean"},
+    //{cv::ColormapTypes::COLORMAP_HOT, "Hot"},
+    //{cv::ColormapTypes::COLORMAP_MAGMA, "Magma"},
+    //{cv::ColormapTypes::COLORMAP_INFERNO, "Inferno"},
+    //{cv::ColormapTypes::COLORMAP_TWILIGHT_SHIFTED, "TwilightShifted"},
     //{cv::ColormapTypes::COLORMAP_VIRIDIS, "Viridis"},
     //{cv::ColormapTypes::COLORMAP_CIVIDIS, "Cividis"},
     //{cv::ColormapTypes::COLORMAP_PINK, "Pink"},
-    //{cv::ColormapTypes::COLORMAP_JET, "Jet"},
-    //{cv::ColormapTypes::COLORMAP_HSV, "HSV"},
     //{cv::ColormapTypes::COLORMAP_AUTUMN, "Autumn"},
     //{cv::ColormapTypes::COLORMAP_WINTER, "Winter"},
-    //{cv::ColormapTypes::COLORMAP_RAINBOW, "Rainbow"},
     //{cv::ColormapTypes::COLORMAP_SUMMER, "Summer"},
     //{cv::ColormapTypes::COLORMAP_SPRING, "Spring"},
     //{cv::ColormapTypes::COLORMAP_COOL, "Cool"},
@@ -41,11 +42,11 @@ const std::vector<std::tuple<int, std::string>> colormaps = {
 };
 
 std::string elapsedTime(std::chrono::seconds elapsed) {
-    const int hours = std::chrono::duration_cast<std::chrono::hours>(elapsed).count();
+    const long hours = std::chrono::duration_cast<std::chrono::hours>(elapsed).count();
     elapsed -= std::chrono::hours(hours);
-    const int minutes = std::chrono::duration_cast<std::chrono::minutes>(elapsed).count();
+    const long minutes = std::chrono::duration_cast<std::chrono::minutes>(elapsed).count();
     elapsed -= std::chrono::minutes(minutes);
-    const int seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+    const long seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
     std::ostringstream oss;
     oss << "Rec:" << std::setfill('0') << std::setw(2) << hours << ":" << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
     return oss.str();
@@ -60,7 +61,7 @@ std::string timestampFilename(const std::string& label) {
     return oss.str();
 }
 
-void printFrameInfo(cv::Mat frame) {
+void printFrameInfo(const cv::Mat& frame) {
     std::cout << "Rows: " << frame.rows << std::endl;
     std::cout << "Cols: " << frame.cols << std::endl;
     std::cout << "Channels: " << frame.channels() << std::endl;
@@ -73,15 +74,15 @@ void printFrameInfo(cv::Mat frame) {
     exit(0);
 }
 
-std::string getThermalValue(cv::Mat frame, int x, int y, bool conv) {
+std::string getThermalValue(cv::Mat frame, const int x, int y, bool conv) {
     const uint16_t* targetPixel = frame.ptr<uint16_t>(y, x);
     const uint16_t thermValueLow = targetPixel[0];
     const uint16_t thermValueHigh = targetPixel[1];
     std::string tempFormat;
     std::ostringstream oss;
     oss.precision(2);
-    const float thermValue = (thermValueLow + thermValueHigh) / 2;
-    const float cTemp = thermValue / 64 - 273.15;
+    const double thermValue = (static_cast<double>(thermValueLow) + static_cast<double>(thermValueHigh)) / 2;
+    const double cTemp = thermValue / 64 - 273.15;
     if (conv) {
         oss << std::fixed << (cTemp * 9 / 5) + 32 << " F";
     } else {
@@ -91,12 +92,12 @@ std::string getThermalValue(cv::Mat frame, int x, int y, bool conv) {
 }
 
 std::tuple<int, int, int, int> getValues(cv::Mat img) {
-    int16_t highestValue = 0;
-    int16_t lowestValue = 32767; // highest int16_t value
-    int highestX;
-    int highestY;
-    int lowestX;
-    int lowestY;
+    uint16_t highestValue = 0;
+    uint16_t lowestValue = 32767; // highest int16_t value
+    uint16_t highestX;
+    uint16_t highestY;
+    uint16_t lowestX;
+    uint16_t lowestY;
     for (int y = thermalPadding; y < img.rows - thermalPadding; ++y) {
         for (int x = thermalPadding; x < img.cols - thermalPadding; ++x) {
             const uint16_t* targetPixel = img.ptr<uint16_t>(y, x);
@@ -115,9 +116,9 @@ std::tuple<int, int, int, int> getValues(cv::Mat img) {
     return std::make_tuple(highestX, highestY, lowestX, lowestY);
 }
 
-int fixedScale(int num) {
-    double result_double = num * scalingRatio;
-    int result_int = static_cast<int>(std::round(result_double));
+int fixedScale(const int num) {
+    const double result_double = num * scalingRatio;
+    const int result_int = static_cast<int>(std::round(result_double));
     return result_int;
 }
 
@@ -126,9 +127,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: " << argv[0] << " -d <deviceInt>" << std::endl;
         return EXIT_FAILURE;
     }
-    int deviceInt = 0;
+    long deviceInt = 0;
     if (argv[1][1] == 'd') {
-        deviceInt = std::atoi(argv[2]);
+        deviceInt = std::strtol(argv[2], nullptr, 10);
     }
     std::cout << "cppThermalCamera v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << std::endl;
     std::cout << R"(keymap:
@@ -157,7 +158,7 @@ int main(int argc, char* argv[]) {
     int colormapsLen = static_cast<int>(colormaps.size());
     // set video source gstreamer to raw
     char pipeline[100];
-    sprintf(pipeline, "v4l2src device=/dev/video%d ! video/x-raw, width=256, height=384, format=YUY2 ! appsink drop=1", deviceInt);
+    sprintf(pipeline, "v4l2src device=/dev/video%ld ! video/x-raw, width=256, height=384, format=YUY2 ! appsink drop=1", deviceInt);
     cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open the Thermal camera." << std::endl;
