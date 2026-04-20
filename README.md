@@ -2,22 +2,23 @@
 
 read the thermal data from a topdon TC001 thermal camera
 
-![output](.git-assets/capture-1.png)
+![output](.git-assets/20260420_003244.png)
 
 
 # Controls
 
 ```shell
+cppThermalCamera v0.1.0
 keymap:
-     i  | toggle information
+     i  | toggle information (display [thermal area outline, colormap name])
      c  | toggle crosshair
      w  | toggle temp conversion
-     h  | toggle High/Low points
-    z x | scale image - +
-    b n | thermalSearchArea - +
+    h l | toggle High/Low points
+     k  | toggle High/Low points temp labels
+    b n | thermal area - +
      m  | cycle through Colormaps
-     p  | save frame to file
-    r t | record / stop
+     p  | save frame to PNG file
+    r t | record / stop Video avi file
      q  | quit
 ```
 
