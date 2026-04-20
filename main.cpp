@@ -21,24 +21,23 @@ const std::vector<std::tuple<int, std::string>> colormaps = {
     {cv::ColormapTypes::COLORMAP_JET, "Jet"},
     {cv::ColormapTypes::COLORMAP_HSV, "HSV"},
     {cv::ColormapTypes::COLORMAP_RAINBOW, "Rainbow"},
-
-    //{cv::ColormapTypes::COLORMAP_DEEPGREEN, "DeepGreen"},
-    //{cv::ColormapTypes::COLORMAP_OCEAN, "Ocean"},
-    //{cv::ColormapTypes::COLORMAP_HOT, "Hot"},
-    //{cv::ColormapTypes::COLORMAP_MAGMA, "Magma"},
-    //{cv::ColormapTypes::COLORMAP_INFERNO, "Inferno"},
-    //{cv::ColormapTypes::COLORMAP_TWILIGHT_SHIFTED, "TwilightShifted"},
-    //{cv::ColormapTypes::COLORMAP_VIRIDIS, "Viridis"},
-    //{cv::ColormapTypes::COLORMAP_CIVIDIS, "Cividis"},
-    //{cv::ColormapTypes::COLORMAP_PINK, "Pink"},
-    //{cv::ColormapTypes::COLORMAP_AUTUMN, "Autumn"},
-    //{cv::ColormapTypes::COLORMAP_WINTER, "Winter"},
-    //{cv::ColormapTypes::COLORMAP_SUMMER, "Summer"},
-    //{cv::ColormapTypes::COLORMAP_SPRING, "Spring"},
-    //{cv::ColormapTypes::COLORMAP_COOL, "Cool"},
-    //{cv::ColormapTypes::COLORMAP_PARULA, "Parula"},
-    //{cv::ColormapTypes::COLORMAP_PLASMA, "Plasma"},
-    //{cv::ColormapTypes::COLORMAP_TWILIGHT, "Twilight"},
+    {cv::ColormapTypes::COLORMAP_DEEPGREEN, "DeepGreen"},
+    {cv::ColormapTypes::COLORMAP_OCEAN, "Ocean"},
+    {cv::ColormapTypes::COLORMAP_HOT, "Hot"},
+    {cv::ColormapTypes::COLORMAP_MAGMA, "Magma"},
+    {cv::ColormapTypes::COLORMAP_INFERNO, "Inferno"},
+    {cv::ColormapTypes::COLORMAP_TWILIGHT_SHIFTED, "TwilightShifted"},
+    {cv::ColormapTypes::COLORMAP_VIRIDIS, "Viridis"},
+    {cv::ColormapTypes::COLORMAP_CIVIDIS, "Cividis"},
+    {cv::ColormapTypes::COLORMAP_PINK, "Pink"},
+    {cv::ColormapTypes::COLORMAP_AUTUMN, "Autumn"},
+    {cv::ColormapTypes::COLORMAP_WINTER, "Winter"},
+    {cv::ColormapTypes::COLORMAP_SUMMER, "Summer"},
+    {cv::ColormapTypes::COLORMAP_SPRING, "Spring"},
+    {cv::ColormapTypes::COLORMAP_COOL, "Cool"},
+    {cv::ColormapTypes::COLORMAP_PARULA, "Parula"},
+    {cv::ColormapTypes::COLORMAP_PLASMA, "Plasma"},
+    {cv::ColormapTypes::COLORMAP_TWILIGHT, "Twilight"},
 };
 
 std::string elapsedTime(std::chrono::seconds elapsed) {
@@ -141,7 +140,7 @@ int main(int argc, char* argv[]) {
     b n | thermal area - +
      m  | cycle through Colormaps
      p  | save frame to PNG file
-    r t | record / stop
+    r t | record / stop Video avi file
      q  | quit)" << std::endl;
     cv::VideoWriter videoWriter;
     char windowName[24];
@@ -202,6 +201,9 @@ int main(int argc, char* argv[]) {
             cv::Mat thermalMat = frame(bottomHalf);
             //printFrameInfo(thermalMat);  // testing /////////////////////////////////
             if (crosshair) {
+                // draw crosshair shadow
+                cv::line(scaledImage, cv::Point((outputWidth / 2) - 10, (outputHeight / 2)), cv::Point((outputWidth / 2) + 10, (outputHeight / 2)), white, 2);
+                cv::line(scaledImage, cv::Point((outputWidth / 2), (outputHeight / 2) - 10), cv::Point((outputWidth / 2), (outputHeight / 2) + 10), white, 2);
                 // draw crosshair
                 cv::line(scaledImage, cv::Point((outputWidth / 2) - 10, (outputHeight / 2)), cv::Point((outputWidth / 2) + 10, (outputHeight / 2)), red, 1);
                 cv::line(scaledImage, cv::Point((outputWidth / 2), (outputHeight / 2) - 10), cv::Point((outputWidth / 2), (outputHeight / 2) + 10), red, 1);
