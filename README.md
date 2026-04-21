@@ -8,13 +8,13 @@ read the thermal data from a topdon TC001 thermal camera
 # Controls
 
 ```shell
-cppThermalCamera v0.1.0
+cppThermalCamera v0.1.1
 keymap:
      i  | toggle information (display [thermal area outline, colormap name])
      c  | toggle crosshair
+     x  | change crosshair color
      w  | toggle temp conversion
     h l | toggle High/Low points
-     k  | toggle High/Low points temp labels
     b n | thermal area - +
      m  | cycle through Colormaps
      p  | save frame to PNG file

@@ -1,6 +1,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "version.h"
+
 int sensorHeight = 192;
 int sensorWidth = 256;
 int outputHeight = 480;
@@ -13,6 +14,9 @@ const cv::Scalar red(0, 0, 255);
 const cv::Scalar green(0, 255, 0);
 const cv::Scalar blue(255, 0, 0);
 const cv::Scalar black(0, 0, 0);
+const std::array colors = {
+    red, white, green, blue, black
+};
 float fontScale = 0.4;
 int textBorderWidth = 3;
 const std::vector<std::tuple<int, std::string>> colormaps = {
@@ -73,7 +77,7 @@ void printFrameInfo(const cv::Mat& frame) {
     exit(0);
 }
 
-std::string getThermalValue(cv::Mat frame, const int x, int y, bool conv) {
+std::string getThermalValue(cv::Mat frame, const int x, const int y, const bool conv) {
     const uint16_t* targetPixel = frame.ptr<uint16_t>(y, x);
     const uint16_t thermValueLow = targetPixel[0];
     const uint16_t thermValueHigh = targetPixel[1];
@@ -90,7 +94,7 @@ std::string getThermalValue(cv::Mat frame, const int x, int y, bool conv) {
     return oss.str();
 }
 
-std::tuple<int, int, int, int> getValues(cv::Mat img) {
+std::tuple<uint16_t, uint16_t, uint16_t, uint16_t> getValues(cv::Mat img) {
     uint16_t highestValue = 0;
     uint16_t lowestValue = 32767; // highest int16_t value
     uint16_t highestX;
@@ -134,9 +138,9 @@ int main(int argc, char* argv[]) {
     std::cout << R"(keymap:
      i  | toggle information (display [thermal area outline, colormap name])
      c  | toggle crosshair
+     x  | change crosshair color
      w  | toggle temp conversion
     h l | toggle High/Low points
-     k  | toggle High/Low points temp labels
     b n | thermal area - +
      m  | cycle through Colormaps
      p  | save frame to PNG file
@@ -150,10 +154,11 @@ int main(int argc, char* argv[]) {
     bool tempConv = true; // true F, false C
     bool recording = false;
     bool crosshair = false;
+    int crosshairColorIndex = 0;
+    cv::Scalar crosshairColor = colors[crosshairColorIndex];
     bool info = false;
     bool lowPoint = false;
     bool highPoint = false;
-    bool highLowLabel = false;
     int colormapsLen = static_cast<int>(colormaps.size());
     // set video source gstreamer to raw
     char pipeline[100];
@@ -161,7 +166,7 @@ int main(int argc, char* argv[]) {
     cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open the Thermal camera." << std::endl;
-        return -1;
+        return 66;
     }
     cv::Mat frame;
     // start video capture
@@ -201,12 +206,9 @@ int main(int argc, char* argv[]) {
             cv::Mat thermalMat = frame(bottomHalf);
             //printFrameInfo(thermalMat);  // testing /////////////////////////////////
             if (crosshair) {
-                // draw crosshair shadow
-                cv::line(scaledImage, cv::Point((outputWidth / 2) - 10, (outputHeight / 2)), cv::Point((outputWidth / 2) + 10, (outputHeight / 2)), white, 2);
-                cv::line(scaledImage, cv::Point((outputWidth / 2), (outputHeight / 2) - 10), cv::Point((outputWidth / 2), (outputHeight / 2) + 10), white, 2);
                 // draw crosshair
-                cv::line(scaledImage, cv::Point((outputWidth / 2) - 10, (outputHeight / 2)), cv::Point((outputWidth / 2) + 10, (outputHeight / 2)), red, 1);
-                cv::line(scaledImage, cv::Point((outputWidth / 2), (outputHeight / 2) - 10), cv::Point((outputWidth / 2), (outputHeight / 2) + 10), red, 1);
+                cv::line(scaledImage, cv::Point((outputWidth / 2) - 10, (outputHeight / 2)), cv::Point((outputWidth / 2) + 10, (outputHeight / 2)), crosshairColor, 1);
+                cv::line(scaledImage, cv::Point((outputWidth / 2), (outputHeight / 2) - 10), cv::Point((outputWidth / 2), (outputHeight / 2) + 10), crosshairColor, 1);
                 // get center thermal value
                 std::string centerThermalValue = getThermalValue(thermalMat, sensorWidth / 2, sensorHeight / 2, tempConv);
                 // display thermal value
@@ -220,24 +222,20 @@ int main(int argc, char* argv[]) {
                     cv::circle(scaledImage, cv::Point(fixedScale(hX), fixedScale(hY)), 1, black, 2);
                     cv::circle(scaledImage, cv::Point(fixedScale(hX), fixedScale(hY)), 1, red, 1);
                     // get temp at highest point
-                    if (highLowLabel) {
-                        std::string highestThermalValue = getThermalValue(thermalMat, hX, hY, tempConv);
-                        // highest temp text
-                        cv::putText(scaledImage, highestThermalValue, cv::Point(fixedScale((hX + 2)), fixedScale((hY + 7))), font, fontScale, black, textBorderWidth);
-                        cv::putText(scaledImage, highestThermalValue, cv::Point(fixedScale((hX + 2)), fixedScale((hY + 7))), font, fontScale, white, 1);
-                    }
+                    std::string highestThermalValue = getThermalValue(thermalMat, hX, hY, tempConv);
+                    // highest temp text
+                    cv::putText(scaledImage, highestThermalValue, cv::Point(fixedScale((hX + 2)), fixedScale((hY + 7))), font, fontScale, black, textBorderWidth);
+                    cv::putText(scaledImage, highestThermalValue, cv::Point(fixedScale((hX + 2)), fixedScale((hY + 7))), font, fontScale, white, 1);
                 }
                 if (lowPoint) {
                     // lowest temp dot
                     cv::circle(scaledImage, cv::Point(fixedScale(lX), fixedScale(lY)), 1, blue, 2);
                     cv::circle(scaledImage, cv::Point(fixedScale(lX), fixedScale(lY)), 1, white, 1);
-                    if (highLowLabel) {
-                        // get lowest temp value
-                        std::string lowestThermalValue = getThermalValue(thermalMat, lX, lY, tempConv);
-                        // lowest value text
-                        cv::putText(scaledImage, lowestThermalValue, cv::Point(fixedScale((lX + 2)), fixedScale((lY + 7))), font, fontScale, black, textBorderWidth);
-                        cv::putText(scaledImage, lowestThermalValue, cv::Point(fixedScale((lX + 2)), fixedScale((lY + 7))), font, fontScale, white, 1);
-                    }
+                    // get lowest temp value
+                    std::string lowestThermalValue = getThermalValue(thermalMat, lX, lY, tempConv);
+                    // lowest value text
+                    cv::putText(scaledImage, lowestThermalValue, cv::Point(fixedScale((lX + 2)), fixedScale((lY + 7))), font, fontScale, black, textBorderWidth);
+                    cv::putText(scaledImage, lowestThermalValue, cv::Point(fixedScale((lX + 2)), fixedScale((lY + 7))), font, fontScale, white, 1);
                 }
             }
         }
@@ -301,14 +299,18 @@ int main(int argc, char* argv[]) {
             case 'h':
                 highPoint = !highPoint;
                 break;
-            case 'k':
-                highLowLabel = !highLowLabel;
-                break;
             case 'l':
                 lowPoint = !lowPoint;
                 break;
             case 'c':
                 crosshair = !crosshair;
+                break;
+            case 'x':
+                crosshairColorIndex++;
+                if (crosshairColorIndex >= colors.size()) {
+                    crosshairColorIndex = 0;
+                }
+                crosshairColor = colors[crosshairColorIndex];
                 break;
             case 'i':
                 info = !info;
