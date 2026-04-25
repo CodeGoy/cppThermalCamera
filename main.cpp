@@ -130,10 +130,16 @@ int fixedScale(const int num) {
     return result_int;
 }
 
-int setInterpolation(const int num) {
+int setInterpolation(const int num, std::string* label) {
     auto [scalingInterpolationInt, scalingInterpolationText] = scalingInterpolation[num];
-    std::cout << "Scaling interpolation : " << scalingInterpolationText << std::endl;
+    *label = scalingInterpolationText;
     return scalingInterpolationInt;
+}
+
+int setColormap(const int num, std::string* label) {
+    auto [colormapInt, colormapText] = colormaps[num];
+    *label = colormapText;
+    return colormapInt;
 }
 
 int main(int argc, char* argv[]) {
@@ -148,6 +154,7 @@ int main(int argc, char* argv[]) {
     std::cout << "cppThermalCamera v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << std::endl;
     std::cout << R"(keymap:
      i  | toggle information (display [thermal area outline, colormap name])
+     s  | scaling interpolation
      c  | toggle crosshair
      x  | change crosshair color
      w  | toggle temp conversion
@@ -163,6 +170,7 @@ int main(int argc, char* argv[]) {
     auto recordingStartTime = std::chrono::system_clock::now();
     int scalingInterpolationIndex = 0;
     int scalingInterpolationValue = cv::INTER_CUBIC;
+    std::string scalingInterpolationText = "Cubic";
     int mapInt = 0;
     bool tempConv = true; // true F, false C
     bool recording = false;
@@ -175,6 +183,9 @@ int main(int argc, char* argv[]) {
     bool lowPoint = false;
     bool highPoint = false;
     int colormapsLen = static_cast<int>(colormaps.size());
+    std::string colormapText;
+    int colormapInt;
+    colormapInt = setColormap(0, &colormapText);
     // set video source gstreamer to raw
     char pipeline[100];
     sprintf(pipeline, "v4l2src device=/dev/video%ld ! video/x-raw, width=256, height=384, format=YUY2 ! appsink drop=1", deviceInt);
@@ -204,8 +215,6 @@ int main(int argc, char* argv[]) {
         cv::Mat rgbFrame;
         cv::cvtColor(singleChannelMat, rgbFrame, cv::COLOR_GRAY2BGR);
         // printFrameInfo(rgbFrame);  // testing /////////////////////////////////
-        // get current colormap
-        auto [colormapInt, colormapText] = colormaps[mapInt];
         // apply colormap
         cv::Mat colorMappedFrame;
         cv::applyColorMap(rgbFrame, colorMappedFrame, colormapInt);
@@ -258,6 +267,9 @@ int main(int argc, char* argv[]) {
             // display colormapText
             cv::putText(scaledImage, colormapText, cv::Point(0, 11), font, fontScale, black, textBorderWidth);
             cv::putText(scaledImage, colormapText, cv::Point(0, 11), font, fontScale, white, 1);
+            // display scaling interpolation
+            cv::putText(scaledImage, scalingInterpolationText, cv::Point(0, 31), font, fontScale, black, textBorderWidth);
+            cv::putText(scaledImage, scalingInterpolationText, cv::Point(0, 31), font, fontScale, white, 1);
             // draw thermalSearchArea box
             cv::rectangle(scaledImage, cv::Point(fixedScale(thermalPadding), fixedScale(thermalPadding)), cv::Point(fixedScale(sensorWidth-thermalPadding), fixedScale(sensorHeight-thermalPadding)), red, 1);
         }
@@ -285,6 +297,7 @@ int main(int argc, char* argv[]) {
                 } else {
                     mapInt++;
                 }
+                colormapInt = setColormap(mapInt, &colormapText);
                 break;
             case 'p':
                 if (!imwrite(timestampFilename(".png"), scaledImage)) {
@@ -347,7 +360,7 @@ int main(int argc, char* argv[]) {
                 if (scalingInterpolationIndex >= scalingInterpolation.size()) {
                     scalingInterpolationIndex = 0;
                 }
-                 scalingInterpolationValue = setInterpolation(scalingInterpolationIndex);
+                 scalingInterpolationValue = setInterpolation(scalingInterpolationIndex, &scalingInterpolationText);
                 break;
             default:
                 break;
