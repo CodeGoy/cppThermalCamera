@@ -82,7 +82,7 @@ void printFrameInfo(const cv::Mat& frame) {
     exit(0);
 }
 
-std::string getThermalValue(cv::Mat frame, const int x, const int y, const bool conv) {
+std::string getThermalValue(cv::Mat& frame, const int x, const int y, const bool conv) {
     const uint16_t* targetPixel = frame.ptr<uint16_t>(y, x);
     const uint16_t thermValueLow = targetPixel[0];
     const uint16_t thermValueHigh = targetPixel[1];
@@ -99,7 +99,7 @@ std::string getThermalValue(cv::Mat frame, const int x, const int y, const bool 
     return oss.str();
 }
 
-std::tuple<uint16_t, uint16_t, uint16_t, uint16_t> getValues(cv::Mat img) {
+std::tuple<uint16_t, uint16_t, uint16_t, uint16_t> getValues(cv::Mat& img) {
     uint16_t highestValue = 0;
     uint16_t lowestValue = 32767; // highest int16_t value
     uint16_t highestX;
