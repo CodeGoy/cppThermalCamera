@@ -8,6 +8,8 @@ int outputHeight = 480;
 int outputWidth = 640;
 double scalingRatio = static_cast<double>(outputHeight) / static_cast<double>(sensorHeight);
 int thermalPadding = 20; // do not read thermal data N pixels from the edge, higher value lowers processing time
+float fontScale = 0.4;
+int textBorderWidth = 3;
 int font = cv::FONT_HERSHEY_SIMPLEX;
 const cv::Scalar white(255, 255, 255);
 const cv::Scalar red(0, 0, 255);
@@ -17,8 +19,11 @@ const cv::Scalar black(0, 0, 0);
 const std::array colors = {
     red, white, green, blue, black
 };
-float fontScale = 0.4;
-int textBorderWidth = 3;
+const std::vector<std::tuple<int, std::string>> scalingInterpolation = {
+    {cv::INTER_CUBIC, "Cubic"},
+    {cv::INTER_LINEAR, "Linear"},
+    {cv::INTER_LANCZOS4, "LANCZOS4"},
+};
 const std::vector<std::tuple<int, std::string>> colormaps = {
     {cv::ColormapTypes::COLORMAP_BONE, "Bone"},
     {cv::ColormapTypes::COLORMAP_TURBO, "Turbo"},
@@ -125,6 +130,12 @@ int fixedScale(const int num) {
     return result_int;
 }
 
+int setInterpolation(const int num) {
+    auto [scalingInterpolationInt, scalingInterpolationText] = scalingInterpolation[num];
+    std::cout << "Scaling interpolation : " << scalingInterpolationText << std::endl;
+    return scalingInterpolationInt;
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " -d <deviceInt>" << std::endl;
@@ -150,10 +161,14 @@ int main(int argc, char* argv[]) {
     char windowName[24];
     sprintf(windowName, "%s v%d.%d.%d", "cppThermalCamera", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_PATCH);
     auto recordingStartTime = std::chrono::system_clock::now();
+    int scalingInterpolationIndex = 0;
+    int scalingInterpolationValue = cv::INTER_CUBIC;
     int mapInt = 0;
     bool tempConv = true; // true F, false C
     bool recording = false;
     bool crosshair = false;
+    int halfWidth = outputWidth / 2;
+    int halfHeight = outputHeight / 2;
     int crosshairColorIndex = 0;
     cv::Scalar crosshairColor = colors[crosshairColorIndex];
     bool info = false;
@@ -179,8 +194,7 @@ int main(int argc, char* argv[]) {
             break;
         }
         // get visible mat
-        cv::Rect topHalf(0, 0, sensorWidth, sensorHeight);
-        cv::Mat visibleMat = frame(topHalf);
+        cv::Mat visibleMat = frame(cv::Rect(0, 0, sensorWidth, sensorHeight));
         // printFrameInfo(visibleMat);  // testing /////////////////////////////////
         // Extract the first channel
         cv::Mat singleChannelMat;
@@ -198,17 +212,17 @@ int main(int argc, char* argv[]) {
         //printFrameInfo(colorMappedFrame);  // testing /////////////////////////////////
         // scale mat
         cv::Mat scaledImage;
-        cv::resize(colorMappedFrame, scaledImage, cv::Size(outputWidth, outputHeight), 0, 0, cv::INTER_CUBIC);
+        cv::resize(colorMappedFrame, scaledImage, cv::Size(outputWidth, outputHeight), 0, 0, scalingInterpolationValue);
         //printFrameInfo(scaledImage);  // testing /////////////////////////////////
         // get thermal mat only if used
         if (crosshair || highPoint || lowPoint) {
-            cv::Rect bottomHalf(0, sensorHeight , sensorWidth, sensorHeight);
-            cv::Mat thermalMat = frame(bottomHalf);
+            // get thermal mat
+            cv::Mat thermalMat = frame(cv::Rect(0, sensorHeight , sensorWidth, sensorHeight));
             //printFrameInfo(thermalMat);  // testing /////////////////////////////////
             if (crosshair) {
                 // draw crosshair
-                cv::line(scaledImage, cv::Point((outputWidth / 2) - 10, (outputHeight / 2)), cv::Point((outputWidth / 2) + 10, (outputHeight / 2)), crosshairColor, 1);
-                cv::line(scaledImage, cv::Point((outputWidth / 2), (outputHeight / 2) - 10), cv::Point((outputWidth / 2), (outputHeight / 2) + 10), crosshairColor, 1);
+                cv::line(scaledImage, cv::Point(halfWidth - 10, halfHeight), cv::Point((halfWidth) + 10, halfHeight), crosshairColor, 1);
+                cv::line(scaledImage, cv::Point(halfWidth, halfHeight - 10), cv::Point(halfWidth, halfHeight + 10), crosshairColor, 1);
                 // get center thermal value
                 std::string centerThermalValue = getThermalValue(thermalMat, sensorWidth / 2, sensorHeight / 2, tempConv);
                 // display thermal value
@@ -325,7 +339,18 @@ int main(int argc, char* argv[]) {
                     thermalPadding++;
                 }
                 break;
-            default: break;
+            case 'o':
+                // TODO : save frame to binary file
+                break;
+            case 's':
+                scalingInterpolationIndex++;
+                if (scalingInterpolationIndex >= scalingInterpolation.size()) {
+                    scalingInterpolationIndex = 0;
+                }
+                 scalingInterpolationValue = setInterpolation(scalingInterpolationIndex);
+                break;
+            default:
+                break;
         }
     }
     cap.release();
