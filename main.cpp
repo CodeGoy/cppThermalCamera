@@ -153,6 +153,7 @@ int main(int argc, char* argv[]) {
     }
     std::cout << "cppThermalCamera v" << PROJECT_VERSION_MAJOR << "." << PROJECT_VERSION_MINOR << "." << PROJECT_VERSION_PATCH << std::endl;
     std::cout << R"(keymap:
+     f  | flip frame horizontally
      i  | toggle information (display [thermal area outline, colormap name])
      s  | scaling interpolation
      c  | toggle crosshair
@@ -182,6 +183,7 @@ int main(int argc, char* argv[]) {
     bool info = false;
     bool lowPoint = false;
     bool highPoint = false;
+    bool flip = true;
     int colormapsLen = static_cast<int>(colormaps.size());
     std::string colormapText;
     int colormapInt;
@@ -203,6 +205,10 @@ int main(int argc, char* argv[]) {
         if (frame.empty()) {
             std::cerr << "Error: Could not grab a frame." << std::endl;
             break;
+        }
+        // flip frame Horizontally
+        if (flip) {
+            cv::flip(frame, frame, 1);
         }
         // get visible mat
         cv::Mat visibleMat = frame(cv::Rect(0, 0, sensorWidth, sensorHeight));
@@ -268,8 +274,8 @@ int main(int argc, char* argv[]) {
             cv::putText(scaledImage, colormapText, cv::Point(0, 11), font, fontScale, black, textBorderWidth);
             cv::putText(scaledImage, colormapText, cv::Point(0, 11), font, fontScale, white, 1);
             // display scaling interpolation
-            cv::putText(scaledImage, scalingInterpolationText, cv::Point(0, 31), font, fontScale, black, textBorderWidth);
-            cv::putText(scaledImage, scalingInterpolationText, cv::Point(0, 31), font, fontScale, white, 1);
+            cv::putText(scaledImage, scalingInterpolationText, cv::Point(0, 25), font, fontScale, black, textBorderWidth);
+            cv::putText(scaledImage, scalingInterpolationText, cv::Point(0, 25), font, fontScale, white, 1);
             // draw thermalSearchArea box
             cv::rectangle(scaledImage, cv::Point(fixedScale(thermalPadding), fixedScale(thermalPadding)), cv::Point(fixedScale(sensorWidth-thermalPadding), fixedScale(sensorHeight-thermalPadding)), red, 1);
         }
@@ -282,6 +288,7 @@ int main(int argc, char* argv[]) {
             // Display elapsed time
             cv::putText(scaledImage, recElapsedTime, cv::Point(fixedScale(sensorWidth) - 88, 11), font, fontScale, black, textBorderWidth);
             cv::putText(scaledImage, recElapsedTime, cv::Point(fixedScale(sensorWidth) - 88, 11), font, fontScale, white, 1);
+            // write frame
             videoWriter.write(scaledImage);
         }
         // show frame
@@ -354,6 +361,9 @@ int main(int argc, char* argv[]) {
                 break;
             case 'o':
                 // TODO : save frame to binary file
+                break;
+            case 'f':
+                flip = !flip;
                 break;
             case 's':
                 scalingInterpolationIndex++;
